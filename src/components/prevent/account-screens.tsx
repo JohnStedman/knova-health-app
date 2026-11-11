@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { addUpload, downloadText, nextBooking, releasedResults, resetDemo, update, useDemo, useUploads, validateUpload } from "@/lib/prevent-store";
+import { addUpload, downloadText, nextBooking, releasedResults, resetDemo, update, useDemo, useCloudAccount, useUploads, validateUpload } from "@/lib/prevent-store";
+import { CloudAccountSection } from "./cloud-account";
 import { announce, Card, Check, Modal, Switch, Tabs } from "./ui";
 import { Head, Row, type Nav } from "./screen-layout";
 const GOALS = ["Heart health", "Energy & sleep", "Metabolic health", "Longevity planning"];
@@ -16,7 +17,7 @@ export function Journey({ go }: Nav) {
         {GOALS.map((x) => <Check key={x} label={x} checked={g.includes(x)} onChange={(v) => setG(v ? [...g, x] : g.filter((y) => y !== x))} />)}
       </fieldset>
       <label className="pv-label">Brief history (fictional only)<textarea value={h} onChange={(e) => setH(e.target.value)} rows={3} placeholder="Do not enter real health information" /></label>
-      <Check label="Required: I understand this is a fictional prototype and consent to demo data being stored on this device." checked={c} onChange={setC} />
+      <Check label="Required: I understand this is a fictional prototype. Sample data is stored in the selected Demo or account workspace." checked={c} onChange={setC} />
       {err && <p className="pv-error" role="alert">{err}</p>}
       <button className="pv-btn pv-btn-primary" onClick={() => {
         if (!c) return setErr("Prototype consent is required to save intake.");
@@ -29,13 +30,15 @@ export function Journey({ go }: Nav) {
 }
 
 export function Profile({ go }: Nav) {
+  const sync = useCloudAccount();
   const [confirm, setConfirm] = useState(false);
   const s = useDemo(); const p = s.profile; const set = (k: keyof typeof p, v: string | boolean) => update((st) => ({ ...st, profile: { ...st.profile, [k]: v } }));
   return (<>
     <Head eyebrow="Profile" title="Profile & preferences" />
     <Card><label className="pv-label">Display name (demo)<input value={p.name} maxLength={30} onChange={(e) => set("name", e.target.value || "Alex")} /></label>
-      <p className="pv-small pv-muted">No login. This prototype has no accounts or security; never enter real details.</p></Card>
-    <Card><h3>Required prototype consent</h3><p className="pv-small">{s.intake.consent ? "✓ Given during intake (demo storage on this device)." : "Not yet given — complete intake."}</p></Card>
+      <p className="pv-small pv-muted">Fictional display name only. Account access is separate below; never enter real health details.</p></Card>
+    <CloudAccountSection />
+    <Card><h3>Required prototype consent</h3><p className="pv-small">{s.intake.consent ? "✓ Given during sample intake." : "Not yet given — complete intake."}</p></Card>
     <Card><h3>Notifications (simulated)</h3>
       <Switch label="Appointment reminders" checked={p.reminders} onChange={(v) => set("reminders", v)} />
       <Switch label="Result release alerts" checked={p.resultAlerts} onChange={(v) => set("resultAlerts", v)} />
@@ -49,9 +52,9 @@ export function Profile({ go }: Nav) {
       <Switch label="Share summary with my GP" checked={p.shareGp} onChange={(v) => set("shareGp", v)} />
       <Switch label="De-identified research" checked={p.research} onChange={(v) => set("research", v)} />
     </Card>
-    <Card><h3>About this demo</h3><p className="pv-small">Fictional data; no live services. Bookings, consultations, My Health Record and devices are simulated. Data stays in this browser.</p>
-      {confirm ? <div className="pv-btns"><button className="pv-btn" onClick={() => setConfirm(false)}>Keep data</button><button className="pv-btn pv-btn-danger" onClick={() => { resetDemo(); setConfirm(false); announce("Demo data reset."); }}>Confirm reset</button></div>
-        : <button className="pv-btn" onClick={() => setConfirm(true)}>Reset demo</button>}</Card>
+    <Card><h3>About this demo</h3><p className="pv-small">Fictional data only. Bookings, consultations, My Health Record and devices are simulated. Demo mode stays in this browser; optional account saving stores sample workspace changes in CHG_Prevent.</p>
+      {sync.mode === "demo" && (confirm ? <div className="pv-btns"><button className="pv-btn" onClick={() => setConfirm(false)}>Keep data</button><button className="pv-btn pv-btn-danger" onClick={() => { resetDemo(); setConfirm(false); announce("Demo data reset."); }}>Confirm reset</button></div>
+        : <button className="pv-btn" onClick={() => setConfirm(true)}>Reset demo</button>)}</Card>
   </>);
 }
 

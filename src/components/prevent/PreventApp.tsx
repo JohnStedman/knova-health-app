@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isScreenId, update, useDemo, wasRecovered, type Booking, type ScreenId } from "@/lib/prevent-store";
+import { isScreenId, update, useDemo, useCloudAccount, workspaceSync, wasRecovered, type Booking, type ScreenId } from "@/lib/prevent-store";
+import { startAccountConnection } from "@/lib/external-supabase";
+import { Button } from "@/components/ui/button";
 import { BookingForm, SCREEN_COMPONENTS, type Nav } from "./screens";
 import { announce, Announcer, Modal } from "./ui";
 import { Brand, Icon, Navigation, SCREEN_LABELS } from "./app-navigation";
@@ -14,6 +16,9 @@ const readHash = (): ScreenId => {
 
 export function PreventApp() {
   const state = useDemo();
+  const sync = useCloudAccount();
+  useEffect(() => startAccountConnection(), []);
+  useEffect(() => { setBooking(null); setTool(null); }, [sync.epoch]);
   const [screen, setScreen] = useState<ScreenId>("home");
   const [tool, setTool] = useState<"menu" | "search" | "updates" | null>(null);
   const [booking, setBooking] = useState<{ edit?: Booking | undefined } | null>(null);
@@ -52,7 +57,7 @@ export function PreventApp() {
       <button className="pv-brand-button" aria-label="Knova home" onClick={() => go("home")}><Brand /></button>
       <span className="pv-workspace-label">MY HEALTH SPACE</span>
       <Navigation screen={screen} go={go} />
-      <div className="pv-sidebar-footer"><span className="pv-demo-chip">Sample data</span><button onClick={() => go("profile")}>Privacy & preferences <Icon name="arrow" size={16} /></button></div>
+      <div className="pv-sidebar-footer"><span className="pv-demo-chip">{sync.mode === "cloud" ? "Cloud · sample data" : "Demo · sample data"}</span><button onClick={() => go("profile")}>Privacy & preferences <Icon name="arrow" size={16} /></button></div>
     </aside>
     <div className="pv-workspace">
       <header className="pv-header"><div className="pv-header-in">
@@ -68,8 +73,12 @@ export function PreventApp() {
         </div>
       </div></header>
       <main id="pv-main" ref={main} tabIndex={-1} className={`pv-content pv-screen-${screen}`}>
+        {sync.mode === "cloud" && <div className="pv-banner pv-cloud-banner" role="status">Cloud mode · fictional workspace · {sync.phase === "error" ? "Sync failed — not saved" : sync.phase === "saved" ? "Saved" : sync.phase === "loading" ? "Loading — editing paused" : sync.phase === "saving" ? "Saving…" : sync.phase === "pending" ? "Changes not yet saved" : "Account workspace loaded"}
+          {sync.phase === "error" && <><span className="pv-small">{sync.error}</span><Button className="pv-btn" onClick={() => { void workspaceSync.retry(); }}>Retry sync</Button></>}
+          <Button className="pv-btn" onClick={() => workspaceSync.disable()}>Return to Demo mode</Button>
+        </div>}
         {screen !== "home" && <button className="pv-back" onClick={back}><span aria-hidden="true">←</span> Back</button>}
-        <Screen key={screen} {...nav} />
+        {sync.mode === "cloud" && !workspaceSync.canEdit() && screen !== "profile" ? <p className="pv-small">Account workspace unavailable. Retry sync or return to Demo mode.</p> : <Screen key={`${screen}-${sync.epoch}`} {...nav} />}
         <footer className="pv-content-footer"><span>Knova · Your health, in focus</span><span>Internal prototype · fictional data</span></footer>
       </main>
     </div>

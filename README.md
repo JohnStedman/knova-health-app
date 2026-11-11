@@ -16,14 +16,14 @@ Home brings together preparation progress, the next appointment, reviewed result
 ## Development
 
 ```sh
-npm ci
+npm install
 npm run dev
 npm run typecheck
 npm test
 npm run build
 ```
 
-The committed lockfile pins the tested dependencies. Preserve the existing Lovable TanStack/Vite wrapper; it already registers the required plugins.
+This project preserves its existing compatible dependencies and pinned TanStack packages. The minimal repository typecheck command uses `tsc --noEmit`; Lovable uses its automatic typecheck. Preserve the existing Lovable TanStack/Vite wrapper; it already registers the required plugins.
 
 ## Code structure
 
@@ -43,9 +43,17 @@ The committed lockfile pins the tested dependencies. Preserve the existing Lovab
 
 ## Prototype scope
 
-This is a browser-local prototype with fictional data. There is no real login, patient database, clinical messaging, telehealth service, wearable OAuth, pathology connection, payment or ADHA/My Health Record integration. Do not enter real health information.
+This is a fictional prototype with browser-local Demo mode and optional real account authentication/saving to the existing external Supabase project CHG_Prevent. There is no production patient record, clinical messaging, telehealth service, wearable OAuth, pathology connection, payment or ADHA/My Health Record integration. Do not enter real health information.
 
-Preferences, bookings, intake, actions and local messages persist in versioned localStorage on the same browser. Uploaded sample-file metadata remains in memory for the current tab. File contents are never read or transmitted. Reset remains available in Profile. Corrupt saved state recovers safely to fictional defaults.
+In Demo mode, preferences, bookings, intake, actions and sample messages persist under the compatible `prevent-demo` version-4 localStorage key. Uploaded sample-file metadata remains in memory for the current tab, is cleared on account/workspace switches, and is never saved remotely. File contents are never read or transmitted. Demo reset remains available in Profile. Corrupt saved Demo state recovers safely to fictional defaults.
+
+## Optional external account saving
+
+Profile → Cloud account shows the exact project, connection details, sign-in/create-account controls, save status and retry. Email/password authentication uses the existing project's settings; signup waits for normal email confirmation when enabled. Nothing has been provisioned, no users have been created by the implementation, and no email has been sent by validation. Provider settings, email delivery and a real authenticated write remain unverified until a user signs in. No separate user-profile table is needed: display names/preferences are sample workspace state, not authentication credentials.
+
+Signing in alone does not read or write the workspace. Each session must explicitly enable cloud saving. Enabling loads that user's `knova_prototype_workspaces` row before editing/autosave; no row starts with fresh fictional samples rather than importing device Demo data. Changes debounce for 700ms and saves serialize. Failed loads pause editing; invalid rows are not overwritten. Failed saves show an error and allow Retry sync; unsaved edits remain only in memory. Returning to Demo or signing out aborts pending work and restores the separate device Demo workspace. Already accepted server requests cannot be undone by browser cancellation, but their captured owner ID and RLS cannot write a different account. Account workspace data is never copied into shared Demo localStorage. Auth tokens use the separate `knova-external-account` storage key.
+
+Only the public publishable key is used. There is no service key, anonymous write, policy change, new Cloud project or schema broadening. See `docs/external-supabase-setup.md` and `docs/sql/knova-prototype-workspaces.sql` for the already-applied schema and setup/validation limits.
 
 Cancelled appointments cannot enter a consultation, and rescheduling updates the same appointment used by Home and Telehealth. Only released results and released care-summary content are visible. Biological-age and trend values are illustrative, with no diagnostic algorithm or clinical claims.
 

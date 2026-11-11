@@ -1,5 +1,5 @@
 // Central typed demo store for the Knova review prototype.
-// Fictional data only. Browser-only persistence, versioned, with safe recovery.
+// Fictional data only. Isolated Demo storage and explicitly opted-in account storage.
 import { useSyncExternalStore } from "react";
 
 export const SCREENS = [
@@ -132,6 +132,103 @@ export function loadState(raw: string | null, now = new Date()): { state: DemoSt
 }
 export const serialize = (state: DemoState) => JSON.stringify({ version: VERSION, state });
 
+export interface WorkspacePort {
+  load(userId: string, signal: AbortSignal): Promise<{ user_id: string; state: unknown; state_version: number } | null>;
+  save(userId: string, state: DemoState, signal: AbortSignal): Promise<void>;
+}
+export type CloudAccount = { id: string; email: string };
+export type SyncSnapshot = {
+  user: CloudAccount | null; mode: "demo" | "cloud"; phase: "idle" | "loading" | "ready" | "pending" | "saving" | "saved" | "error";
+  error: string | null; savedAt: string | null; epoch: number;
+};
+
+/** Account-owned sync lifecycle. All state/race rules stay in this central store. */
+export class WorkspaceSync {
+  private value: SyncSnapshot = { user: null, mode: "demo", phase: "idle", error: null, savedAt: null, epoch: 0 };
+  private watchers = new Set<Listener>();
+  private port: WorkspacePort | undefined;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private abort = new AbortController();
+  private loaded = false;
+  private dirty = false;
+  private writing = false;
+  private change = 0;
+  constructor(private readonly state: { read(): DemoState; replace(s: DemoState): void; demo(): void }, private readonly delay = 700) {}
+  snapshot = () => this.value;
+  subscribe = (fn: Listener) => { this.watchers.add(fn); return () => { this.watchers.delete(fn); }; };
+  private status(patch: Partial<SyncSnapshot>) { this.value = { ...this.value, ...patch }; this.watchers.forEach(fn => fn()); }
+  setPort(port: WorkspacePort) { this.port = port; }
+  authError(error: string) { this.status({ error }); }
+  private invalidate() {
+    clearTimeout(this.timer); this.abort.abort(); this.abort = new AbortController();
+    this.loaded = false; this.dirty = false; this.change++;
+    this.status({ epoch: this.value.epoch + 1, savedAt: null, error: null });
+  }
+  account(user: CloudAccount | null) {
+    if (user?.id && user.id === this.value.user?.id) { this.status({ user }); return; }
+    this.invalidate(); this.status({ user, mode: "demo", phase: "idle" }); this.state.demo();
+  }
+  disable() {
+    this.invalidate(); this.status({ mode: "demo", phase: "idle" }); this.state.demo();
+  }
+  async enable() {
+    if (!this.value.user || !this.port || this.value.phase === "loading") return;
+    this.invalidate();
+    this.status({ mode: "cloud", phase: "loading" });
+    // Never import the shared device's demo edits into an account implicitly.
+    this.state.replace(createDefaultState());
+    const epoch = this.value.epoch, userId = this.value.user.id;
+    try {
+      const row = await this.port.load(userId, this.abort.signal);
+      if (epoch !== this.value.epoch) return;
+      if (row) {
+        const decoded = loadState(JSON.stringify({ version: row.state_version, state: row.state }));
+        if (row.user_id !== userId || decoded.recovered) throw new Error("Invalid saved workspace; no data was overwritten.");
+        this.state.replace(decoded.state);
+      }
+      this.loaded = true;
+      this.status({ phase: "ready", error: null });
+      // A missing row is not called saved; first change creates it via owner RLS.
+    } catch (error) {
+      if (epoch === this.value.epoch) this.status({ phase: "error", error: error instanceof Error ? error.message : "Workspace load failed." });
+    }
+  }
+  canEdit() { return this.value.mode === "demo" || this.loaded; }
+  changed() {
+    if (this.value.mode !== "cloud" || !this.loaded) return;
+    this.dirty = true; this.change++;
+    this.status({ phase: "pending", error: null });
+    clearTimeout(this.timer); this.timer = setTimeout(() => { void this.flush(); }, this.delay);
+  }
+  async retry() {
+    if (!this.loaded) await this.enable();
+    else { this.status({ error: null }); await this.flush(); }
+  }
+  async flush() {
+    if (this.writing || !this.dirty || !this.loaded || this.value.mode !== "cloud" || !this.value.user || !this.port) return;
+    this.writing = true; this.dirty = false;
+    const epoch = this.value.epoch, change = this.change, id = this.value.user.id;
+    const snapshot = JSON.parse(serialize(this.state.read())).state as DemoState;
+    this.status({ phase: "saving" });
+    let failed = false;
+    try {
+      await this.port.save(id, snapshot, this.abort.signal);
+      if (epoch === this.value.epoch) this.status({ phase: change === this.change ? "saved" : "pending", savedAt: new Date().toISOString(), error: null });
+    } catch (error) {
+      failed = true;
+      if (epoch === this.value.epoch) {
+        this.dirty = true;
+        this.status({ phase: "error", error: error instanceof Error ? error.message : "Save failed. Changes remain in this tab only." });
+      }
+    } finally {
+      this.writing = false;
+      if (this.dirty && (!failed || epoch !== this.value.epoch)) {
+        clearTimeout(this.timer); this.timer = setTimeout(() => { void this.flush(); }, this.delay);
+      }
+    }
+  }
+}
+
 // ---------- Booking ----------
 export const nextBooking = (s: DemoState, now = new Date()) => s.bookings.filter((b) => b.status === "confirmed" && b.date >= now.toLocaleDateString("en-CA", { timeZone: "Australia/Adelaide" })).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
 export function consultationBooking(s: DemoState): Booking | undefined {
@@ -212,11 +309,15 @@ function ensure(): DemoState {
   return current;
 }
 export function update(fn: (s: DemoState) => DemoState) {
+  if (!workspaceSync.canEdit()) return;
   current = fn(ensure());
-  try { window.localStorage.setItem(STORAGE_KEY, serialize(current)); } catch { /* storage unavailable */ }
+  if (workspaceSync.snapshot().mode === "demo") {
+    try { window.localStorage.setItem(STORAGE_KEY, serialize(current)); } catch { /* storage unavailable */ }
+  } else workspaceSync.changed();
   emit();
 }
 export function resetDemo() {
+  if (workspaceSync.snapshot().mode !== "demo") return;
   current = createDefaultState(); uploads = [];
   try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   emit();
@@ -225,6 +326,16 @@ export const wasRecovered = () => (ensure(), recoveredFlag);
 export function useDemo(): DemoState {
   return useSyncExternalStore((l) => (listeners.add(l), () => listeners.delete(l)), ensure, ensure);
 }
+export const workspaceSync = new WorkspaceSync({
+  read: ensure,
+  replace: (state) => { current = state; uploads = []; emit(); },
+  demo: () => {
+    let raw: string | null = null;
+    try { raw = window.localStorage.getItem(STORAGE_KEY); } catch { /* unavailable */ }
+    const decoded = loadState(raw); current = decoded.state; recoveredFlag = decoded.recovered; uploads = []; emit();
+  },
+});
+export function useCloudAccount() { return useSyncExternalStore(workspaceSync.subscribe, workspaceSync.snapshot, workspaceSync.snapshot); }
 // Session-only uploads: kept in memory, never persisted, never sent anywhere.
 export const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "text/plain"];
 export const MAX_BYTES = 5 * 1024 * 1024;

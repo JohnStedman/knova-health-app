@@ -1,8 +1,20 @@
+<!-- LOVABLE:BEGIN -->
+> [!IMPORTANT]
+> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
+> published git history — force pushing, or rebasing/amending/squashing commits
+> that are already pushed — as it rewrites history on Lovable's side and the
+> user will likely lose their project history.
+>
+> Commits you push to the connected branch sync back to Lovable and show up in
+> the editor, so keep the branch in a working state.
+<!-- LOVABLE:END -->
+
 ## Project rules
 - All prototype state and business rules live in `src/lib/prevent-store.ts` (pure functions + one store); UI reads via `useDemo()` so rules stay unit-testable.
-- No backend: this is a browser-only fictional prototype; do not add network calls or persistence beyond localStorage.
+- Use only the authorised external Supabase browser client for explicit account auth and opt-in fictional workspace saving; no new backend provisioning or clinical integrations, because Demo mode must remain independent.
+- Keep sync lifecycle rules in prevent-store.ts and I/O in external-supabase.ts; load before save, serialize/debounce writes, invalidate on identity changes, and never store account workspace data in shared Demo storage, to prevent cross-account leakage.
 - Styling uses `pv-*` classes and `--pv-*` tokens in `src/styles.css`; no ad hoc colors in components.
 - Consultation state references a booking ID and derives appointment details through the central store so edits/cancellations cannot leave stale or joinable cancelled appointments.
 - Shared modals use Radix Dialog with explicit trigger-focus restoration because callback changes must not reset keyboard focus.
 - Responsive desktop sidebar and mobile bottom navigation share the same participant screen tree; theme tokens are scoped to the app and dialog portals to keep colours consistent.
-- Knova logo files and charcoal/lavender/paper palette match the current Knova website draft. Keep semantic colours centralized, including dark mode. The palette is draft pending brand sign-off.
+- Participant modules are grouped by domain behind a typed screen registry; navigation and search use shared screen labels to preserve compatible deep links.

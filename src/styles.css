@@ -226,6 +226,12 @@ h2 { font-size: 20px; } h3 { font-size: 17px; }
 }
 @media (max-width: 375px) { .pv-hero { padding: 21px; grid-template-columns: 1fr; }.pv-preparation { display: none; }.pv-tabs { width: 100%; }.pv-tab { padding-inline: 11px; }.pv-content { padding-inline: 14px; } }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+.pv-cloud-details { font-size: 12px; color: var(--pv-muted); overflow-wrap: anywhere; margin-block: 12px; }
+.pv-cloud-details summary { cursor: pointer; color: var(--pv-ink); }
+.pv-cloud-email { overflow-wrap: anywhere; }
+.pv-cloud-form { display: grid; gap: 12px; }
+.pv-cloud-banner { grid-column: 1/-1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pv-cloud-banner .pv-small { flex-basis: 100%; overflow-wrap: anywhere; }
 @media (min-width: 376px) and (max-width: 767px) {
   .pv-hero { grid-template-columns: 1fr; }
   .pv-hero h2 { font-size: 31px; }
