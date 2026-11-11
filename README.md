@@ -9,9 +9,9 @@ A responsive, clickable participant app for internal product review. The app use
 
 ## App experience
 
-Desktop and tablet use a responsive sidebar and full-width workspace. Phones use edge-to-edge screens and a fixed bottom navigation. There is no device frame or wireframe-review toolbar in the participant app. All fifteen participant modules remain available through navigation and search.
+The original Prevent Wireframe Layout Reference (45 PNGs and reference HTML/JS/CSS) governs the fifteen screens' order, composition, density and tablet grids. Knova logos, Figtree/system type and charcoal/lavender/paper tokens replace the reference blue/teal treatments. Phones use edge-to-edge screens, normal document scrolling, safe areas and fixed bottom navigation; tablet and desktop adapt the same structure in an 820px maximum app width. No sidebar, device frame, review gallery or fixed screenshot height belongs in the participant app. All fifteen participant modules remain available through the header menu and search.
 
-Home brings together preparation progress, the next appointment, reviewed results, action completion, device connections and care-team links. Values come from the shared store. Booking creation, rescheduling, cancellation confirmation, calendar export, intake, local care messages, document samples, result search and filters, action-plan updates, device preferences, updates and light/dark mode work in the prototype.
+Home follows the reference next-step card, to-do list, upcoming care, three health-summary counts and plan CTA. Journey uses the five-stage timeline with intake in a dialog; Profile keeps reference identity/preferences before optional account saving. Documents pair reviewed and previous records; results use a value/range table alongside clinician context on tablet. Bookings and devices use compact actionable rows; consultation keeps a fictional generated portrait above preparation controls, with no live media capture. Action plan, care thread, biological-age summary and trajectory retain the reference compositions and working store-driven actions. Search, updates and theme remain in the header/menu, with account saving in Profile. Preparation advice remains clinician-directed, not an unsupported fasting claim.
 
 ## Development
 
@@ -23,7 +23,7 @@ npm test
 npm run build
 ```
 
-This project preserves its existing compatible dependencies and pinned TanStack packages. The minimal repository typecheck command uses `tsc --noEmit`; Lovable uses its automatic typecheck. Preserve the existing Lovable TanStack/Vite wrapper; it already registers the required plugins.
+This project preserves its existing compatible dependencies and pinned TanStack packages. The typecheck command uses `tsgo --noEmit`. Preserve the existing Lovable TanStack/Vite wrapper; it already registers the required plugins.
 
 ## Code structure
 
@@ -34,7 +34,7 @@ This project preserves its existing compatible dependencies and pinned TanStack 
 - `app-navigation.tsx`: navigation groups, labels, icons and wordmark.
 - `app-tools.tsx`: searchable navigation and updates derived from sample state.
 - `screen-layout.tsx` and `ui.tsx`: shared screen layout and accessible Radix dialogs.
-- `home-screen.tsx`: dashboard and contextual next actions.
+- `home-screen.tsx`: reference Home next-step, tasks, upcoming care and health summary.
 - `account-screens.tsx`: health journey, profile, documents and national-record concept.
 - `appointment-screens.tsx`: bookings, confirmation and simulated telehealth.
 - `results-screens.tsx`: reviewed markers, search, screening, biological age and released summary.
@@ -49,7 +49,7 @@ In Demo mode, preferences, bookings, intake, actions and sample messages persist
 
 ## Optional external account saving
 
-Profile → Cloud account shows the exact project, connection details, sign-in/create-account controls, save status and retry. Email/password authentication uses the existing project's settings; signup waits for normal email confirmation when enabled. Nothing has been provisioned, no users have been created by the implementation, and no email has been sent by validation. Provider settings, email delivery and a real authenticated write remain unverified until a user signs in. No separate user-profile table is needed: display names/preferences are sample workspace state, not authentication credentials.
+Profile → Cloud account & app preferences → Cloud account shows the exact project, connection details, sign-in/create-account controls, save status and retry. The section is collapsed initially to preserve the reference profile composition. Email/password authentication uses the existing project's settings; signup waits for normal email confirmation when enabled. Nothing has been provisioned, no users have been created by the implementation, and no email has been sent by validation. Provider settings, email delivery and a real authenticated write remain unverified until a user signs in. No separate user-profile table is needed: display names/preferences are sample workspace state, not authentication credentials.
 
 Signing in alone does not read or write the workspace. Each session must explicitly enable cloud saving. Enabling loads that user's `knova_prototype_workspaces` row before editing/autosave; no row starts with fresh fictional samples rather than importing device Demo data. Changes debounce for 700ms and saves serialize. Failed loads pause editing; invalid rows are not overwritten. Failed saves show an error and allow Retry sync; unsaved edits remain only in memory. Returning to Demo or signing out aborts pending work and restores the separate device Demo workspace. Already accepted server requests cannot be undone by browser cancellation, but their captured owner ID and RLS cannot write a different account. Account workspace data is never copied into shared Demo localStorage. Auth tokens use the separate `knova-external-account` storage key.
 
@@ -65,4 +65,4 @@ This repository was originally a one-time source copy, not a verified two-way Gi
 
 ## Validation
 
-The test suite covers all fifteen module entries, section search and result filtering, dashboard-to-plan persistence, cancellation confirmation, blocked cancelled consultations, corrupt nested-state recovery, reviewed-result safeguards and booking rules. Run type checking and a production build before publishing. Responsive browser checks should include iPhone, Android and iPad widths, plus dark mode and dialogs.
+The test suite covers all fifteen module entries, section search and result filtering, plan persistence across Home navigation, cancellation confirmation, blocked cancelled consultations, corrupt nested-state recovery, reviewed-result safeguards and booking rules. Responsive browser checks cover 390, 412, 820 and 1280px widths, both themes, dialogs and representative store-driven flows. Reference sample values and unreleased medical content are not imported over existing state. The consultation portrait is a generated fictional replacement because the archive references an unavailable portrait asset. Real authenticated account writes and email delivery require separate validation; no production publishing is authorised by a design update.
