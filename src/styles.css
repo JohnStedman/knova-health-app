@@ -127,3 +127,17 @@ p { margin:7px 0 0; }
  .pv-screen-trajectory > .pv-tabs { width:fit-content; }.pv-screen-trajectory > .pv-tabs .pv-tab { min-width:90px; }
 }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
+
+/* Appointment details only: preserve every other wireframe/modal composition. */
+.pv-appointment-detail { display:grid; gap:20px; font-size:14px; line-height:1.55; overflow-wrap:anywhere; }
+.pv-appointment-meta { display:grid; gap:10px; }
+.pv-appointment-meta p { margin:0; }
+.pv-appointment-meta .pv-pill { justify-self:start; font-size:12px; }
+.pv-appointment-detail .pv-small { font-size:12px; }
+.pv-appointment-actions { display:flex; flex-wrap:wrap; gap:10px; }
+.pv-appointment-actions .pv-btn { min-height:44px; font-size:13px; flex:1 1 140px; }
+.pv-appointment-preparation { border-top:1px solid var(--pv-line); padding-top:20px; }
+.pv-appointment-preparation h3 { font-size:16px; }
+.pv-appointment-preparation .pv-list { margin:12px 0; font-size:14px; }
+.pv-appointment-preparation .pv-list li { padding:5px 0; }
+@media(max-width:480px) { .pv-appointment-actions .pv-btn { flex-basis:100%; width:100%; } }

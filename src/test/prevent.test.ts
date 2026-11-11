@@ -39,26 +39,26 @@ describe("Knova prototype rules", () => {
   });
 
   it("rescheduling updates both Upcoming care and the selected consultation", () => {
-    const st = startConsultation(createDefaultState(now), "b1");
+    const st = startConsultation(createDefaultState(now), "b1", now);
     const original = st.bookings[0];
     if (!original) throw new Error("Missing fixture");
     const changed = saveBooking(st, { ...original, date: "2026-11-12", time: "15:30" });
-    expect(nextBooking(changed)).toMatchObject({ date: "2026-11-12", time: "15:30" });
-    expect(consultationBooking(changed)).toMatchObject({ date: "2026-11-12", time: "15:30" });
+    expect(nextBooking(changed, now)).toMatchObject({ date: "2026-11-12", time: "15:30" });
+    expect(consultationBooking(changed, now)).toMatchObject({ date: "2026-11-12", time: "15:30" });
   });
 
   it("cancelled appointments disappear from Upcoming care and cannot enter a consultation", () => {
-    const st = cancelBooking(startConsultation(createDefaultState(now), "b1"), "b1");
-    expect(nextBooking(st)).toBeUndefined();
-    expect(consultationBooking(st)).toBeUndefined();
-    expect(startConsultation(st, "b1")).toBe(st);
-    expect(advanceConsultation(st, "waiting")).toBe(st);
+    const st = cancelBooking(startConsultation(createDefaultState(now), "b1", now), "b1");
+    expect(nextBooking(st, now)).toBeUndefined();
+    expect(consultationBooking(st, now)).toBeUndefined();
+    expect(startConsultation(st, "b1", now)).toBe(st);
+    expect(advanceConsultation(st, "waiting", now)).toBe(st);
   });
 
   it("joining one booking does not accidentally select a different appointment", () => {
     const st = createDefaultState(now);
     const changed = saveBooking(st, { id: "b2", service: "Results review", date: "2026-11-20", time: "13:00", mode: "Telehealth", status: "confirmed" });
-    expect(consultationBooking(startConsultation(changed, "b2"))?.id).toBe("b2");
+    expect(consultationBooking(startConsultation(changed, "b2", now), now)?.id).toBe("b2");
   });
 
   it("clinic appointments cannot enter telehealth", () => {
@@ -66,16 +66,16 @@ describe("Knova prototype rules", () => {
     const original = st.bookings[0];
     if (!original) throw new Error("Missing fixture");
     const changed = saveBooking(st, { ...original, mode: "CHG clinic" });
-    expect(consultationBooking(changed)).toBeUndefined();
-    expect(startConsultation(changed, "b1")).toBe(changed);
+    expect(consultationBooking(changed, now)).toBeUndefined();
+    expect(startConsultation(changed, "b1", now)).toBe(changed);
   });
 
   it("requires all three device/privacy checks before the waiting room", () => {
     const st = createDefaultState(now);
-    expect(advanceConsultation(st, "waiting")).toBe(st);
+    expect(advanceConsultation(st, "waiting", now)).toBe(st);
     const ready = { ...st, consult: { ...st.consult, identity: true, privacy: true, device: true } };
-    expect(advanceConsultation(ready, "waiting").consult.phase).toBe("waiting");
-    expect(advanceConsultation(ready, "call")).toBe(ready);
+    expect(advanceConsultation(ready, "waiting", now).consult.phase).toBe("waiting");
+    expect(advanceConsultation(ready, "call", now)).toBe(ready);
   });
 
   it("hides unreleased results and excludes them from health counts", () => {
@@ -90,7 +90,7 @@ describe("Knova prototype rules", () => {
     st.careNoteReleased = false;
     expect(releasedCareNote(st)).toBeNull();
     st.consult = { ...st.consult, identity: true, privacy: true, device: true };
-    const ended = advanceConsultation(advanceConsultation(advanceConsultation(st, "waiting"), "call"), "ended");
+    const ended = advanceConsultation(advanceConsultation(advanceConsultation(st, "waiting", now), "call", now), "ended", now);
     expect(releasedCareNote(ended)).toBe(st.careNote);
   });
 

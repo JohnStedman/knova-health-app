@@ -1,6 +1,9 @@
 import { useState } from "react";
 import {
   advanceConsultation,
+  bookingStatus,
+  canJoinBooking,
+  upcomingBookings,
   buildIcs,
   cancelBooking,
   consultationBooking,
@@ -17,14 +20,20 @@ import { Button } from "@/components/ui/button";
 import consultationPhoto from "@/assets/prevent-reference-portrait.png";
 import { Icon } from "./app-navigation";
 import { announce, Card, Check, Eyebrow, Modal } from "./ui";
-import { Head, fmtDate, FullAction, SectionTitle, type Nav } from "./screen-layout";
+import { Head, fmtDate, FullAction, type Nav } from "./screen-layout";
 export function Bookings({ go, openBooking }: Nav) {
-  const [cancel, setCancel] = useState<Booking | null>(null);
-  const [detail, setDetail] = useState<Booking | null>(null);
+  const [cancelId, setCancel] = useState<string | null>(null);
+  const [detailId, setDetail] = useState<string | null>(null);
   const [all, setAll] = useState(false);
   const s = useDemo();
   const next = nextBooking(s);
-  const bookings = all ? s.bookings : s.bookings.filter((b) => b.status === "confirmed");
+  const bookings = all ? s.bookings : upcomingBookings(s);
+  const detail = s.bookings.find(b => b.id === detailId);
+  const cancel = s.bookings.find(b => b.id === cancelId);
+  const status = detail ? bookingStatus(detail) : null;
+  const fullDate = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString("en-AU", {
+    timeZone: "Australia/Adelaide", weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
   return (
     <>
       <Head
@@ -41,13 +50,19 @@ export function Bookings({ go, openBooking }: Nav) {
             : "Book your next clinician conversation."}
         </p>
       </Card>
-      <SectionTitle title={all ? "All appointments" : "Upcoming"} onClick={() => setAll(!all)} />
+      <div className="pv-section-title">
+        <h2>{all ? "All appointments" : "Upcoming"}</h2>
+        <Button variant="prototype" className="pv-text-link" onClick={() => setAll(!all)}>
+          {all ? "Show upcoming" : "View all"}
+        </Button>
+      </div>
+      {!bookings.length && <p className="pv-small pv-wide">{all ? "No appointment history yet. Book a sample assessment below." : "No upcoming appointments. Book a sample assessment below or select View all for your history."}</p>}
       <div className="pv-booking-list pv-wide">
         {bookings.map((b) => (
           <Button
             className="pv-booking-row"
             key={b.id}
-            onClick={() => setDetail(b)}
+            onClick={() => setDetail(b.id)}
             aria-label={`View appointment ${b.service}`}
           >
             <span className="pv-tool-icon">
@@ -60,9 +75,9 @@ export function Bookings({ go, openBooking }: Nav) {
               </small>
             </span>
             <span
-              className={`pv-pill ${b.status === "confirmed" ? "pv-pill-in-range" : "pv-pill-action"}`}
+              className={`pv-pill ${bookingStatus(b) === "Confirmed" ? "pv-pill-in-range" : bookingStatus(b) === "Past" ? "pv-pill-monitor" : "pv-pill-action"}`}
             >
-              {b.status === "confirmed" ? "Confirmed" : "Cancelled"}
+              {bookingStatus(b)}
             </span>
           </Button>
         ))}
@@ -72,58 +87,46 @@ export function Bookings({ go, openBooking }: Nav) {
       </FullAction>
       {detail && (
         <Modal title={detail.service} onClose={() => setDetail(null)}>
-          <p>
-            {fmtDate(detail.date)} · {detail.time} Australia/Adelaide · {detail.mode}
-          </p>
-          <p className="pv-small">Fictional appointment — no live availability reserved.</p>
-          {detail.status === "confirmed" && (
-            <div className="pv-btns">
-              {detail.mode === "Telehealth" && (
-                <Button
-                  className="pv-btn pv-btn-primary"
-                  onClick={() => {
-                    update((st) => startConsultation(st, detail.id));
-                    setDetail(null);
-                    go("consult");
-                  }}
-                >
-                  Join (simulated)
-                </Button>
-              )}
-              <Button
-                className="pv-btn"
-                onClick={() => {
-                  setDetail(null);
-                  openBooking(detail);
-                }}
-              >
-                Reschedule
-              </Button>
-              <Button
-                className="pv-btn"
-                onClick={() => {
-                  setDetail(null);
-                  setCancel(detail);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="pv-btn"
-                onClick={() =>
-                  downloadText("knova-demo-event.ics", buildIcs(detail), "text/calendar")
-                }
-              >
-                Demo .ics
-              </Button>
+          <div className="pv-appointment-detail">
+            <div className="pv-appointment-meta">
+              <p>{fullDate(detail.date)} · {detail.time} Australia/Adelaide · {detail.mode}</p>
+              <span className={`pv-pill ${status === "Confirmed" ? "pv-pill-in-range" : status === "Past" ? "pv-pill-monitor" : "pv-pill-action"}`}>{status}</span>
+              <p className="pv-small">Fictional appointment — no live availability reserved.</p>
+              {status === "Past" && <p>This sample appointment is in the past and cannot be joined. Reschedule it to a future date or book a new sample appointment.</p>}
+              {status === "Cancelled" && <p>This sample appointment was cancelled and cannot be joined.</p>}
             </div>
-          )}
-          <h3>Before your appointment</h3>
-          <ul className="pv-list">
-            <li>Complete intake</li>
-            <li>Follow the preparation instructions supplied for your ordered tests</li>
-            <li>Write down your questions</li>
-          </ul>
+            {detail.status === "confirmed" && (
+              <div className="pv-appointment-actions" role="group" aria-label="Appointment actions">
+                {canJoinBooking(detail) && <Button variant="prototype" className="pv-btn pv-btn-primary" onClick={() => {
+                  update(st => startConsultation(st, detail.id));
+                  setDetail(null);
+                  go("consult");
+                }}>Join (simulated)</Button>}
+                <Button variant="prototype" className="pv-btn" onClick={() => {
+                  const current = s.bookings.find(b => b.id === detailId);
+                  if (!current || current.status !== "confirmed") return;
+                  setDetail(null);
+                  openBooking(current);
+                }}>Reschedule</Button>
+                <Button variant="prototype" className="pv-btn" onClick={() => {
+                  const current = s.bookings.find(b => b.id === detailId);
+                  if (!current || current.status !== "confirmed") return;
+                  setDetail(null);
+                  setCancel(current.id);
+                }}>Cancel</Button>
+                {status === "Confirmed" && <Button variant="prototype" className="pv-btn" onClick={() => downloadText("knova-demo-event.ics", buildIcs(detail), "text/calendar")}>Add to calendar</Button>}
+              </div>
+            )}
+            {status === "Confirmed" && <section className="pv-appointment-preparation" aria-labelledby="appointment-preparation-title">
+              <h3 id="appointment-preparation-title">Before your appointment</h3>
+              <ul className="pv-list">
+                <li>Complete intake</li>
+                <li>Follow the preparation instructions supplied for your ordered tests</li>
+                <li>Write down your questions</li>
+              </ul>
+              <p className="pv-small">Add to calendar downloads a sample event only; it does not reserve a real appointment.</p>
+            </section>}
+          </div>
         </Modal>
       )}
       {cancel && (
@@ -139,7 +142,10 @@ export function Bookings({ go, openBooking }: Nav) {
             <Button
               className="pv-btn pv-btn-danger"
               onClick={() => {
-                update((state) => cancelBooking(state, cancel.id));
+                update((state) => {
+                  const current = state.bookings.find(b => b.id === cancelId);
+                  return current?.status === "confirmed" ? cancelBooking(state, current.id) : state;
+                });
                 setCancel(null);
                 announce("Demo booking cancelled.");
               }}
@@ -154,6 +160,7 @@ export function Bookings({ go, openBooking }: Nav) {
 }
 
 export function BookingForm({ edit, onDone }: { edit?: Booking | undefined; onDone: () => void }) {
+  const state = useDemo();
   const [f, setF] = useState({
     service: edit?.service ?? "",
     date: edit?.date ?? "",
@@ -174,6 +181,11 @@ export function BookingForm({ edit, onDone }: { edit?: Booking | undefined; onDo
         const errs = validateBooking(f);
         setE(errs);
         if (Object.keys(errs).length) return;
+        const current = edit ? state.bookings.find(b => b.id === edit.id) : undefined;
+        if (edit && (!current || current.status !== "confirmed")) {
+          setE({ service: "This appointment is no longer confirmed. Close and reopen your bookings." });
+          return;
+        }
         const b: Booking = {
           id: edit?.id ?? `b${Date.now()}`,
           service: f.service,
@@ -182,7 +194,10 @@ export function BookingForm({ edit, onDone }: { edit?: Booking | undefined; onDo
           mode: f.mode as Booking["mode"],
           status: "confirmed",
         };
-        update((st) => saveBooking(st, b));
+        update((st) => {
+          const latest = edit ? st.bookings.find(item => item.id === edit.id) : undefined;
+          return edit && latest?.status !== "confirmed" ? st : saveBooking(st, b);
+        });
         announce(
           edit
             ? "Demo booking rescheduled."
@@ -256,7 +271,7 @@ export function Consult({ go }: Nav) {
         />
         <Card>
           <h3>No confirmed telehealth appointment</h3>
-          <p>A cancelled appointment cannot enter a consultation.</p>
+          <p>Past, cancelled and clinic appointments cannot enter a consultation. View your history to reschedule a past sample appointment.</p>
           <FullAction secondary onClick={() => go("bookings")}>
             View bookings
           </FullAction>

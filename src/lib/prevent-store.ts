@@ -230,13 +230,24 @@ export class WorkspaceSync {
 }
 
 // ---------- Booking ----------
-export const nextBooking = (s: DemoState, now = new Date()) => s.bookings.filter((b) => b.status === "confirmed" && b.date >= now.toLocaleDateString("en-CA", { timeZone: "Australia/Adelaide" })).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
-export function consultationBooking(s: DemoState): Booking | undefined {
-  if (s.consult.bookingId) return s.bookings.find((b) => b.id === s.consult.bookingId && b.status === "confirmed" && b.mode === "Telehealth");
-  return s.bookings.filter((b) => b.status === "confirmed" && b.mode === "Telehealth").sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+/** Eligibility is calendar-day based in Adelaide; no production join window. */
+export const adelaideDate = (now = new Date()) => new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Australia/Adelaide", year: "numeric", month: "2-digit", day: "2-digit",
+}).format(now);
+export function bookingStatus(b: Booking, now = new Date()): "Confirmed" | "Past" | "Cancelled" {
+  if (b.status === "cancelled") return "Cancelled";
+  return b.date < adelaideDate(now) ? "Past" : "Confirmed";
 }
-export function startConsultation(s: DemoState, id: string): DemoState {
-  const b = s.bookings.find((b) => b.id === id && b.status === "confirmed" && b.mode === "Telehealth");
+export const isUpcomingBooking = (b: Booking, now = new Date()) => bookingStatus(b, now) === "Confirmed";
+export const canJoinBooking = (b: Booking, now = new Date()) => isUpcomingBooking(b, now) && b.mode === "Telehealth";
+export const upcomingBookings = (s: DemoState, now = new Date()) => s.bookings.filter(b => isUpcomingBooking(b, now)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+export const nextBooking = (s: DemoState, now = new Date()) => upcomingBookings(s, now)[0];
+export function consultationBooking(s: DemoState, now = new Date()): Booking | undefined {
+  if (s.consult.bookingId) return s.bookings.find(b => b.id === s.consult.bookingId && canJoinBooking(b, now));
+  return upcomingBookings(s, now).find(b => canJoinBooking(b, now));
+}
+export function startConsultation(s: DemoState, id: string, now = new Date()): DemoState {
+  const b = s.bookings.find(b => b.id === id && canJoinBooking(b, now));
   if (!b) return s;
   return { ...s, consult: { ...createDefaultState().consult, bookingId: b.id } };
 }
@@ -245,11 +256,11 @@ export function saveBooking(s: DemoState, booking: Booking): DemoState {
   return { ...s, bookings: exists ? s.bookings.map((b) => b.id === booking.id ? booking : b) : [...s.bookings, booking] };
 }
 export function cancelBooking(s: DemoState, id: string): DemoState {
-  const selected = consultationBooking(s)?.id === id;
+  const selected = s.consult.bookingId === id || (!s.consult.bookingId && consultationBooking(s)?.id === id);
   return { ...s, bookings: s.bookings.map((b) => b.id === id ? { ...b, status: "cancelled" } : b), consult: selected ? { ...createDefaultState().consult, bookingId: id } : s.consult };
 }
-export function advanceConsultation(s: DemoState, phase: DemoState["consult"]["phase"]): DemoState {
-  if (!consultationBooking(s)) return s;
+export function advanceConsultation(s: DemoState, phase: DemoState["consult"]["phase"], now = new Date()): DemoState {
+  if (!consultationBooking(s, now)) return s;
   if (phase === "waiting" && !(s.consult.identity && s.consult.privacy && s.consult.device)) return s;
   if (phase === "call" && s.consult.phase !== "waiting") return s;
   if (phase === "ended" && s.consult.phase !== "call") return s;
@@ -262,7 +273,7 @@ export function validateBooking(i: BookingInput, now = new Date()): BookingError
   const e: BookingErrors = {};
   if (!["Clinician consultation", "Blood test & recheck", "Results review"].includes(i.service)) e.service = "Choose a service.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(i.date)) e.date = "Choose a date.";
-  else if (i.date <= ymd(now)) e.date = "Choose a future date.";
+  else if (i.date <= adelaideDate(now)) e.date = "Choose a future date.";
   if (!["09:00", "10:30", "13:00", "15:30"].includes(i.time)) e.time = "Choose a time.";
   if (i.mode !== "Telehealth" && i.mode !== "CHG clinic") e.mode = "Choose Telehealth or CHG clinic.";
   return e;
