@@ -77,11 +77,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Prevent Health App" },
-      { name: "description", content: "Prevent participant app prototype · fictional data" },
+      { name: "theme-color", content: "#F6F5F3" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { title: "Knova Health App" },
+      { name: "description", content: "Knova participant app prototype · fictional data" },
     ],
     links: [
+      { rel: "icon", type: "image/svg+xml", href: "/brand/knova-icon.svg" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
       {
         rel: "stylesheet",
         href: appCss,

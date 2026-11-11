@@ -1,4 +1,4 @@
-// Central typed demo store for the Prevent review prototype.
+// Central typed demo store for the Knova review prototype.
 // Fictional data only. Browser-only persistence, versioned, with safe recovery.
 import { useSyncExternalStore } from "react";
 
@@ -67,7 +67,7 @@ export function createDefaultState(now = new Date()): DemoState {
     profile: { name: "Alex", reminders: true, resultAlerts: true, shareGp: false, research: false },
     intake: { goals: [], history: "", consent: false, saved: false },
     docs: [
-      { id: "d1", name: "Clinician-reviewed report (sample)", kind: "Report", status: "Reviewed by clinician (demo)", content: "PREVENT SAMPLE REPORT — FICTIONAL\nParticipant: Alex (demo)\nReviewed biomarkers: ApoB 0.73 g/L, HbA1c 5.7%, Vitamin D 82 nmol/L.\nAll values illustrative. Not for clinical use." },
+      { id: "d1", name: "Clinician-reviewed report (sample)", kind: "Report", status: "Reviewed by clinician (demo)", content: "KNOVA SAMPLE REPORT — FICTIONAL\nParticipant: Alex (demo)\nReviewed biomarkers: ApoB 0.73 g/L, HbA1c 5.7%, Vitamin D 82 nmol/L.\nAll values illustrative. Not for clinical use." },
       { id: "d2", name: "GP summary (sample)", kind: "GP summary", status: "Received · sample only", content: "SAMPLE GP SUMMARY — FICTIONAL\nNo real patient data. Generated for internal prototype review." },
     ],
     mhrSharing: false,
@@ -115,9 +115,17 @@ export function loadState(raw: string | null, now = new Date()): { state: DemoSt
   try {
     const parsed = JSON.parse(raw);
     const s = parsed?.state;
-    if (parsed?.version !== VERSION || !s || !Array.isArray(s.results) || !Array.isArray(s.bookings) || !s.profile || !s.devices || typeof s.careNote !== "string")
+    if (parsed?.version !== VERSION || !s || !Array.isArray(s.results) || !Array.isArray(s.bookings) || !s.profile || !s.devices || typeof s.careNote !== "string"
+      || typeof s.profile.name !== "string" || !s.intake || !Array.isArray(s.intake.goals) || typeof s.intake.history !== "string"
+      || !s.plan || !Array.isArray(s.plan.actions) || typeof s.plan.reflection !== "string" || !Array.isArray(s.messages)
+      || !Array.isArray(s.docs) || !s.consult || !["checks", "waiting", "call", "ended"].includes(s.consult.phase)
+      || !["light", "dark"].includes(s.theme) || ![3, 6, 12].includes(s.range)
+      || ["WHOOP", "Apple Health", "Health Connect", "Oura"].some(provider => !s.devices[provider]?.perms)
+      || s.plan.actions.some((action: DemoState["plan"]["actions"][number]) => !action || typeof action.title !== "string" || typeof action.done !== "boolean")
+      || s.results.some((result: Result) => !result || typeof result.name !== "string" || typeof result.value !== "string" || typeof result.category !== "string")
+      || s.bookings.some((booking: Booking) => !booking || typeof booking.date !== "string" || typeof booking.time !== "string"))
       throw new Error("invalid");
-    return { state: { ...createDefaultState(now), ...s }, recovered: false };
+    return { state: { ...createDefaultState(now), ...s, docs: s.docs.map((doc: Doc) => ({ ...doc, content: typeof doc.content === "string" ? doc.content.replace(/\bPREVENT\b/g, "KNOVA") : "Sample document unavailable." })) }, recovered: false };
   } catch {
     return { state: createDefaultState(now), recovered: true };
   }
@@ -125,7 +133,7 @@ export function loadState(raw: string | null, now = new Date()): { state: DemoSt
 export const serialize = (state: DemoState) => JSON.stringify({ version: VERSION, state });
 
 // ---------- Booking ----------
-export const nextBooking = (s: DemoState) => s.bookings.filter((b) => b.status === "confirmed").sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+export const nextBooking = (s: DemoState, now = new Date()) => s.bookings.filter((b) => b.status === "confirmed" && b.date >= now.toLocaleDateString("en-CA", { timeZone: "Australia/Adelaide" })).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
 export function consultationBooking(s: DemoState): Booking | undefined {
   if (s.consult.bookingId) return s.bookings.find((b) => b.id === s.consult.bookingId && b.status === "confirmed" && b.mode === "Telehealth");
   return s.bookings.filter((b) => b.status === "confirmed" && b.mode === "Telehealth").sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
@@ -155,10 +163,10 @@ export interface BookingInput { service: string; date: string; time: string; mod
 export type BookingErrors = Partial<Record<"service" | "date" | "time" | "mode", string>>;
 export function validateBooking(i: BookingInput, now = new Date()): BookingErrors {
   const e: BookingErrors = {};
-  if (!i.service) e.service = "Choose a service.";
+  if (!["Clinician consultation", "Blood test & recheck", "Results review"].includes(i.service)) e.service = "Choose a service.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(i.date)) e.date = "Choose a date.";
   else if (i.date <= ymd(now)) e.date = "Choose a future date.";
-  if (!/^\d{2}:\d{2}$/.test(i.time)) e.time = "Choose a time.";
+  if (!["09:00", "10:30", "13:00", "15:30"].includes(i.time)) e.time = "Choose a time.";
   if (i.mode !== "Telehealth" && i.mode !== "CHG clinic") e.mode = "Choose Telehealth or CHG clinic.";
   return e;
 }
@@ -167,7 +175,7 @@ export function buildIcs(b: Booking): string {
   const [h = 0, m = 0] = b.time.split(":").map(Number);
   const end = `${b.date.replace(/-/g, "")}T${String(h + (m + 30 >= 60 ? 1 : 0)).padStart(2, "0")}${String((m + 30) % 60).padStart(2, "0")}00`;
   return [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Prevent Demo//EN",
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Knova Demo//EN",
     "BEGIN:VTIMEZONE", "TZID:Australia/Adelaide",
     "BEGIN:STANDARD", "DTSTART:19700405T030000", "RRULE:FREQ=YEARLY;BYMONTH=4;BYDAY=1SU", "TZOFFSETFROM:+1030", "TZOFFSETTO:+0930", "TZNAME:ACST", "END:STANDARD",
     "BEGIN:DAYLIGHT", "DTSTART:19701004T020000", "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=1SU", "TZOFFSETFROM:+0930", "TZOFFSETTO:+1030", "TZNAME:ACDT", "END:DAYLIGHT",

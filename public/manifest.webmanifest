@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Knova Health",
+  "short_name": "Knova",
+  "description": "Your health, in focus. Internal prototype with fictional data.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F6F5F3",
+  "theme_color": "#F6F5F3",
+  "icons": [
+    {
+      "src": "/brand/knova-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

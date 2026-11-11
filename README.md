@@ -1,64 +1,60 @@
-# Prevent Health App — final participant-app prototype
+# Knova participant app
 
-Clickable Prevent participant app for John Stedman / CHG, based on the app shown inside the approved Prevent App Wireframes
-(source wireframes: https://prevent-app-review.your-nursing-0059.chatgpt.site/).
+A responsive, clickable participant app for internal product review. The app uses the current Knova website logo assets and its charcoal, lavender and warm-paper draft palette. The palette is recorded as draft pending brand sign-off; change its tokens in `src/styles.css` when updated.
 
-The live reference URL could not be fetched by the calling assistant; its matching exported HTML
-(inspected and rendered by the caller) plus the written specification were used for visual fidelity.
+- Source: https://github.com/JohnStedman/prevent-health-app
+- Lovable app: https://lovable.dev/projects/97fd2ff5-bb60-4d44-a0dc-cc71f4748c5c
+- Brand reference: Knova Website, Lovable project `1c8019eb-b61e-4f91-9363-e6155a5e362b`
+- Journey reference: https://prevent-app-review.your-nursing-0059.chatgpt.site/
 
-Lovable editor: https://lovable.dev/projects/97fd2ff5-bb60-4d44-a0dc-cc71f4748c5c
+## App experience
 
-GitHub source: https://github.com/JohnStedman/prevent-health-app. This is a one-time source copy, not a Lovable two-way Git sync connection.
+Desktop and tablet use a responsive sidebar and full-width workspace. Phones use edge-to-edge screens and a fixed bottom navigation. There is no device frame or wireframe-review toolbar in the participant app. All fifteen participant modules remain available through navigation and search.
 
-## Prototype boundaries
-- Fictional data only. No accounts, login, database, backend, paid service or live integration.
-- All state is browser-only (`localStorage`, versioned key `prevent-demo`, safe reset on corrupt data).
-  Uploaded filename metadata stays in memory for the tab session; file contents are not read or sent over the network. Filenames are rendered as escaped React text, never HTML.
-- Bookings, telehealth, My Health Record and devices (WHOOP, Apple Health, Health Connect, Oura) are **simulated**.
-  No ADHA access, data-residency or compliance claims. No camera/microphone access, calls, OAuth or AI calls.
-- No clinician/staff tools: the app ships only fictional, already-reviewed/released sample results and care summary. The simulated clinician releases the fictional summary at the end of a simulated call; unreleased notes remain hidden.
-- Employers never see individual results. Tumour markers are clinician-directed, not general screening tests. Wearable data is for trends/coaching only, not diagnosis.
-- Results, biological age and trajectory values are illustrative; no diagnostic algorithm.
-- Accessibility work (labels, focus trap, Escape, live regions, reduced motion) is included but **not audited**.
+Home brings together preparation progress, the next appointment, reviewed results, action completion, device connections and care-team links. Values come from the shared store. Booking creation, rescheduling, cancellation confirmation, calendar export, intake, local care messages, document samples, result search and filters, action-plan updates, device preferences, updates and light/dark mode work in the prototype.
 
-## Commands
-```
-npm install
-npm run dev         # local dev server (vite dev)
-npm run build       # production build (vite build)
-npm test            # vitest run
+## Development
+
+```sh
+npm ci
+npm run dev
+npm run typecheck
+npm test
+npm run build
 ```
 
-## Modules
-- `src/lib/prevent-store.ts` — screen list, typed demo state, persistence, booking validation, ICS (Australia/Adelaide), released-results helpers.
-- `src/components/prevent/ui.tsx` — modal (focus trap/Escape), switch, tabs, status announcer.
-- `src/components/prevent/screens.tsx` — the 15 participant screens and booking form.
-- `src/components/prevent/PreventApp.tsx` — app shell: header (brand/back + menu), bottom navigation Home / Bookings / Results / Profile.
-- `src/routes/index.tsx` — page entry. `src/test/prevent.test.ts` — rule tests.
+The committed lockfile pins the tested dependencies. Preserve the existing Lovable TanStack/Vite wrapper; it already registers the required plugins.
 
-Navigation: bottom nav for the four main tabs; the header menu reaches all 15 sections; in-screen cards link between them. Desktop shows the participant app in a navy phone frame; mobile is full-screen. The header moon/sun control switches light/dark mode, saved on this device.
+## Code structure
 
-The app has one page route (`/`) and these 15 participant screens, in approved order. Screens support `/#<id>` and `/?screen=<id>` deep links; browser back/forward work.
+- `src/lib/brand.ts`: brand asset references and product name.
+- `src/styles.css`: shared design tokens, light/dark themes and responsive layouts.
+- `src/lib/prevent-store.ts`: typed fictional state, persistence, validation and booking/consultation rules. The existing storage key and screen IDs remain compatible with saved prototypes.
+- `src/components/prevent/PreventApp.tsx`: app controller and responsive shell.
+- `app-navigation.tsx`: navigation groups, labels, icons and wordmark.
+- `app-tools.tsx`: searchable navigation and updates derived from sample state.
+- `screen-layout.tsx` and `ui.tsx`: shared screen layout and accessible Radix dialogs.
+- `home-screen.tsx`: dashboard and contextual next actions.
+- `account-screens.tsx`: health journey, profile, documents and national-record concept.
+- `appointment-screens.tsx`: bookings, confirmation and simulated telehealth.
+- `results-screens.tsx`: reviewed markers, search, screening, biological age and released summary.
+- `wellbeing-screens.tsx`: action plan, conversation, connected devices and trends.
+- `screens.tsx`: typed module registry. Existing `/#screen-id` and `/?screen=screen-id` links remain valid.
 
-| # | Screen ID | Participant screen |
-|---|---|---|
-| 1 | home | Home & next steps |
-| 2 | journey | Onboarding & health history intake |
-| 3 | profile | Profile, preferences, consent and GP sharing |
-| 4 | documents | Documents & session-only sample uploads |
-| 5 | mhr | Illustrative My Health Record |
-| 6 | bookings | Create, reschedule, cancel and calendar download |
-| 7 | consult | Telehealth checks, waiting room, simulated call and phone fallback |
-| 8 | results | 12 reviewed sample markers, filters and clinician notes |
-| 9 | hormones | Hormones & clinician-directed screening |
-| 10 | biological | Illustrative biological age |
-| 11 | care-summary | Clinician-released care summary |
-| 12 | plan | Action plan, completion and reflections |
-| 13 | care | Local care-team conversation |
-| 14 | integrations | Simulated connected devices and permissions |
-| 15 | trajectory | Illustrative age trajectory over 3/6/12 months |
+## Prototype scope
 
-Booking date/time changes are read from the same appointment record on Home, Bookings and Telehealth. Joining selects that specific confirmed telehealth booking. Cancellation removes it from Upcoming care and blocks consultation entry, including direct screen links. All dialogs use keyboard focus containment, Escape dismissal and focus restoration; arrow/Home/End keys navigate tab selectors. "Fictional data; no live services" and Reset demo live in Profile.
+This is a browser-local prototype with fictional data. There is no real login, patient database, clinical messaging, telehealth service, wearable OAuth, pathology connection, payment or ADHA/My Health Record integration. Do not enter real health information.
 
-## Integration TODOs (not implemented)
-Real identity/auth, clinical backend & audit log, pathology ingestion and clinician release workflow, ADHA/My Health Record conformance, telehealth vendor, device OAuth, notifications, hosting/data-residency review, formal accessibility audit.
+Preferences, bookings, intake, actions and local messages persist in versioned localStorage on the same browser. Uploaded sample-file metadata remains in memory for the current tab. File contents are never read or transmitted. Reset remains available in Profile. Corrupt saved state recovers safely to fictional defaults.
+
+Cancelled appointments cannot enter a consultation, and rescheduling updates the same appointment used by Home and Telehealth. Only released results and released care-summary content are visible. Biological-age and trend values are illustrative, with no diagnostic algorithm or clinical claims.
+
+The web manifest supports a standalone app presentation on compatible browsers; it does not add offline service caching or imply App Store publication.
+
+## GitHub and Lovable delivery
+
+This repository was originally a one-time source copy, not a verified two-way GitHub connection. A GitHub push alone must not be treated as evidence that Lovable has updated. Apply the corresponding source bundle to the existing Lovable project and verify its build. Future automatic synchronization requires connecting this exact repository in Lovable's GitHub settings.
+
+## Validation
+
+The test suite covers all fifteen module entries, section search and result filtering, dashboard-to-plan persistence, cancellation confirmation, blocked cancelled consultations, corrupt nested-state recovery, reviewed-result safeguards and booking rules. Run type checking and a production build before publishing. Responsive browser checks should include iPhone, Android and iPad widths, plus dark mode and dialogs.

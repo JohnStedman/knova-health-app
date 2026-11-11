@@ -6,7 +6,7 @@ import {
 
 const now = new Date("2026-10-23T10:00:00");
 
-describe("Prevent prototype rules", () => {
+describe("Knova prototype rules", () => {
   it("keeps the approved 15-screen order and ids", () => {
     expect(SCREENS.map((s) => s.id)).toEqual(["home", "journey", "profile", "documents", "mhr", "bookings", "consult", "results", "hormones", "biological", "care-summary", "plan", "care", "integrations", "trajectory"]);
   });

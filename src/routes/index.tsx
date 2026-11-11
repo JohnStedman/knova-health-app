@@ -4,10 +4,10 @@ import { PreventApp } from "@/components/prevent/PreventApp";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Prevent · Your preventive health app (prototype)" },
-      { name: "description", content: "Prevent participant app prototype: next steps, bookings, results and action plan. Fictional data; no live services." },
-      { property: "og:title", content: "Prevent · Your preventive health app (prototype)" },
-      { property: "og:description", content: "Clickable Prevent health app prototype with fictional data." },
+      { title: "Knova · Your health, in focus" },
+      { name: "description", content: "Knova participant app prototype: next steps, bookings, results and action plan. Fictional data; no live services." },
+      { property: "og:title", content: "Knova · Your health, in focus" },
+      { property: "og:description", content: "Knova participant app with bookings, results and personal action plans. Internal prototype with fictional data." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -16,5 +16,5 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  return <ClientOnly fallback={<div className="pv-loading">Loading Prevent…</div>}><PreventApp /></ClientOnly>;
+  return <ClientOnly fallback={<div className="pv-loading">Loading Knova…</div>}><PreventApp /></ClientOnly>;
 }
