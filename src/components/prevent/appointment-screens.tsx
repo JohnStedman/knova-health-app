@@ -14,7 +14,7 @@ import {
   type Booking,
 } from "@/lib/prevent-store";
 import { Button } from "@/components/ui/button";
-import consultationPhoto from "@/assets/fictional-consultation.jpg";
+import consultationPhoto from "@/assets/prevent-reference-portrait.png.asset.json";
 import { Icon } from "./app-navigation";
 import { announce, Card, Check, Eyebrow, Modal } from "./ui";
 import { Head, fmtDate, FullAction, SectionTitle, type Nav } from "./screen-layout";
@@ -280,10 +280,10 @@ export function Consult({ go }: Nav) {
         <div className="pv-video" aria-label="Simulated video area">
           {c.camera && (
             <img
-              src={consultationPhoto}
+              src={consultationPhoto.url}
               width="768"
-              height="768"
-              alt="Fictional participant in the simulated consultation"
+              height="1024"
+              alt="Reference placeholder participant in the simulated consultation"
             />
           )}
           <span className="pv-video-tag">Simulated consultation · recording off</span>

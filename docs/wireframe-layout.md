@@ -32,7 +32,7 @@ Canonical reference: `Prevent-Wireframe-Layout-Reference.zip`, its original HTML
 
 - Existing fictional dates, marker values, released data and connected-device counts remain store-driven. Held content is never made visible merely to match a screenshot.
 - Existing consultation identity/device/privacy guards remain three checks rather than removing a safeguard to match the two reference rows.
-- The archive lacks the portrait file referenced by its source; a generated fictional consultation portrait replaces it.
+- The supplementary original portrait replaces the generated substitute. Its exact PNG bytes are preserved on the CDN and in the GitHub source; the simulated frame uses the reference center/10% crop and existing Knova-token gradient with recording off.
 - No unsupported fasting instruction, real clinical connection, database migration, new backend or production publication.
 - Account form/details access verified; real authenticated remote saving and email delivery remain unverified for the externally managed connection.
 - GitHub delivery is a one-time authorised source copy, not a two-way sync claim.
